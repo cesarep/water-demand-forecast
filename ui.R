@@ -1,9 +1,5 @@
 library(shiny)
 library(DT)
-library(shinycssloaders)
-library(dplyr)
-
-options(spinner.type = 5, spinner.color = '#AAAAAA')
 
 shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  header = includeCSS("www/style.css"),
 	#### IMPORT DATA ####
@@ -34,7 +30,7 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 	)),
 	#### DATA OPTIONS ####
 	tabPanel('Options', icon = icon('sliders-h'), sidebarLayout(
-		sidebarPanel(##width = 3,
+		sidebarPanel(
 			helpText("Incluir texto explicativo?"),
 			fluidRow(
 				column(6, selectInput('data_column', "Column", c('Import a file first' = 'V1'))),
@@ -48,43 +44,56 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 			),
 			conditionalPanel("input.data_frequency == -1", numericInput('data_frequency_custom', "Frequency", 12)),
 			fluidRow(
-				column(6, numericInput('data_year', 'Start Year', format(Sys.Date(), "%Y"))),
-				column(6, numericInput('data_period', 'Offset', 1))
+				column(6, numericInput('data_year', 'Start Date', 1)),
+				column(6, numericInput('data_period', 'Period Offset', 1))
 			),
 			checkboxInput('data_validation', 'Use last observations as validation data'),
 			conditionalPanel("input.data_validation == true",
-				numericInput('data_validation', "Qty.", 3, 1, 6)
-			)
+				numericInput('data_validation', '', 3, 1, 6)
+			),
+			textInput('data_label', 'y-axis label', '')
 		),
 		mainPanel(
-			plotOutput('option_plot') %>% withSpinner()
+			plotOutput('option_plot')
 		)
 	)),
 	#### DATA ANALYSIS ####
 	tabPanel('Pre-Analysis', icon = icon('chart-bar'), fluidPage(
 		splitLayout(
-			plotOutput('analy_acf', height = '300px') %>% withSpinner(),
-			plotOutput('analy_pacf', height = '300px') %>% withSpinner()
+			plotOutput('analy_acf', height = '300px'),
+			plotOutput('analy_pacf', height = '300px')
 		),
-		plotOutput('analy_stl', height = '450px') %>% withSpinner(),
+		plotOutput('analy_stl', height = '450px'),
 		"INCLUIR DEMAIS TESTES"
 	)),
 	#### MODEL SELECTION ####
 	tabPanel('Model', icon = icon('calculator'), tabsetPanel(type = 'pills',
 		tabPanel('ETS',
-			plotOutput('model_ets_res') %>% withSpinner()
+			plotOutput('model_ets_res')
 		),
 		tabPanel('ARIMA',
-			plotOutput('model_arima_res') %>% withSpinner()
+			plotOutput('model_arima_res')
 		)
 	)),
 	#### FORECAST ####
 	tabPanel('Forecast', icon = icon('chart-line'), tabsetPanel(type = 'pills',
 		tabPanel('ETS',
-			plotOutput('fore_ets') %>% withSpinner()
+			plotOutput('fore_ets')
 		),
 		tabPanel('ARIMA',
-			plotOutput('fore_arima') %>% withSpinner()
+			plotOutput('fore_arima')
 		)
-	))
+	)),
+	#### FOOTER ####
+	footer = tags$footer(
+		hr(),
+		flowLayout(id = "cabecario",
+			p(strong("Acknowledgments"), br(),  img(src="FAPESC.png", alt="FAPESC - Fundo de Amparo à Pesquisa e inovação do Estado de Santa Catarina"), # grant 2019TR594
+												img(src="CNPQ.png", alt="Conselho Nacional de Desenvolvimento Científico e Tecnológico")), # grant 421062/2018-5
+			p(strong("Authors"), br(), "MANFRIN, Danielle", br(),
+										"HENNING, Elisa", br(),
+										"KALBUSCH, Andreza", br(),
+										"PETERSEN, César E.")
+		)
+	)
 ))

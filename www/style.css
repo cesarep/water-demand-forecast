@@ -1,3 +1,16 @@
 body {
 	overflow-y: scroll;
 }
+
+#cabecario{
+   text-align: center;
+}
+#cabecario img{
+   height: 125px;
+   margin: 0 10px;
+   width: auto;
+}
+#cabecario div{
+   width: auto;
+   margin: 0 25px 0;
+}
