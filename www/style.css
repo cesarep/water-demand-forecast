@@ -2,6 +2,31 @@ body {
 	overflow-y: scroll;
 }
 
+table.results{
+   table-layout: fixed;
+   width: 30%;
+   min-width: 400px;
+   margin: 0 auto;
+}
+
+table.results tr td{
+   padding: 8px;
+}
+
+table.results tr:not(:last-child){
+   border-bottom: 1px solid #ddd;
+}
+
+table.results tr td:first-child{
+   text-align: right;
+   font-weight: 700;
+}
+
+.nav-pills{
+   margin: 0 auto;
+   width: max-content;
+}
+
 #cabecario{
    text-align: center;
 }

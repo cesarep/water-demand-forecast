@@ -2,10 +2,10 @@ library(shiny)
 library(DT)
 
 shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  header = includeCSS("www/style.css"),
-	#### IMPORT DATA ####
+	#### IMPORT ####
 	tabPanel("Import", icon = icon('file-upload'), sidebarLayout(
 		sidebarPanel(
-			fileInput("file", "Choose a CSV or Excel File", accept = c("text/csv", "text/plain",
+			fileInput("file", "Choose a CSV or Excel File", accept = c("text/csv", ".csv", "text/plain",
 				"application/vnd.ms-excel",
 				"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 			),
@@ -28,7 +28,7 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 		),
 		mainPanel(dataTableOutput('table'))
 	)),
-	#### DATA OPTIONS ####
+	#### OPTIONS ####
 	tabPanel('Options', icon = icon('sliders-h'), sidebarLayout(
 		sidebarPanel(
 			helpText("Incluir texto explicativo?"),
@@ -57,7 +57,7 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 			plotOutput('option_plot')
 		)
 	)),
-	#### DATA ANALYSIS ####
+	#### PRE ANALYSIS ####
 	tabPanel('Pre-Analysis', icon = icon('chart-bar'), fluidPage(
 		splitLayout(
 			plotOutput('analy_acf', height = '300px'),
@@ -69,19 +69,30 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 	#### MODEL SELECTION ####
 	tabPanel('Model', icon = icon('calculator'), tabsetPanel(type = 'pills',
 		tabPanel('ETS',
-			plotOutput('model_ets_res')
+			splitLayout(
+				plotOutput('model_ets_qqplot', height = '300px'),
+				plotOutput('model_ets_acf', height = '300px')
+			),
+			uiOutput('model_ets_summary')
 		),
 		tabPanel('ARIMA',
-			plotOutput('model_arima_res')
+			splitLayout(
+				plotOutput('model_arima_qqplot', height = '300px'),
+				plotOutput('model_arima_acf', height = '300px')
+			),
+			uiOutput('model_arima_summary')
 		)
 	)),
 	#### FORECAST ####
 	tabPanel('Forecast', icon = icon('chart-line'), tabsetPanel(type = 'pills',
 		tabPanel('ETS',
-			plotOutput('fore_ets')
+			plotOutput('fore_ets'),
+			uiOutput('fore_ets_summary'),
+			tableOutput('fore_ets_table')
 		),
 		tabPanel('ARIMA',
-			plotOutput('fore_arima')
+			plotOutput('fore_arima'),
+			uiOutput('fore_arima_summary')
 		)
 	)),
 	#### FOOTER ####
