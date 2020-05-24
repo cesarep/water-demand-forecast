@@ -1,6 +1,9 @@
 library(shiny)
 library(DT)
 
+month = 1:12
+names(month) = month.abb
+
 shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  header = includeCSS("www/style.css"),
 	#### IMPORT ####
 	tabPanel("Import", icon = icon('file-upload'), sidebarLayout(
@@ -9,6 +12,7 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 				"application/vnd.ms-excel",
 				"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 			),
+			conditionalPanel("!output.filetype", helpText("Or, instead, use the example data.")),
 			conditionalPanel("output.filetype == 'csv'", ## CSV OPTIONS
 				checkboxInput('csv_header', 'Use first row as Header', TRUE),
 				selectInput('csv_separator', 'Separator', c(", (Comma)" = ",",
@@ -31,27 +35,19 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 	#### OPTIONS ####
 	tabPanel('Options', icon = icon('sliders-h'), sidebarLayout(
 		sidebarPanel(
-			helpText("Incluir texto explicativo?"),
-			fluidRow(
-				column(6, selectInput('data_column', "Column", c('Import a file first' = 'V1'))),
-				column(6, selectInput('data_frequency', 'Frequency',  c("Monthly" = 12,
-																		"Quarterly" = 4,
-																		"Semiannual" = 2,
-																		"Annual" = 1,
-																		"Daily" = 365,
-																		"Custom" = -1)
-				))
-			),
+			selectInput('data_column', "Column", c('Example Data' = 'demand')),
 			conditionalPanel("input.data_frequency == -1", numericInput('data_frequency_custom', "Frequency", 12)),
 			fluidRow(
-				column(6, numericInput('data_year', 'Start Date', 1)),
-				column(6, numericInput('data_period', 'Period Offset', 1))
+				column(6, numericInput('data_year', 'Start Date', 2013)),
+				column(6, selectInput('data_period', 'Month', month))
 			),
-			checkboxInput('data_validation', 'Use last observations as validation data'),
-			conditionalPanel("input.data_validation == true",
-				numericInput('data_validation', '', 3, 1, 6)
-			),
-			textInput('data_label', 'y-axis label', '')
+			fluidRow(
+				column(6,checkboxInput('data_validation_cb', 'Use last observations as validation data', T)),
+					   column(6,conditionalPanel("input.data_validation_cb == true",
+				numericInput('data_validation', 'Amount of Observations', 3, 1, 6))
+			))
+			,
+			textInput('data_label', 'y-axis label', 'Water Demand (m³)')
 		),
 		mainPanel(
 			plotOutput('option_plot')
@@ -70,37 +66,63 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 	tabPanel('Model', icon = icon('calculator'), tabsetPanel(type = 'pills',
 		tabPanel('ETS',
 			splitLayout(
+				uiOutput('model_ets_summary')
+			),
+			splitLayout(
 				plotOutput('model_ets_qqplot', height = '300px'),
 				plotOutput('model_ets_acf', height = '300px')
-			),
-			uiOutput('model_ets_summary')
+			)
 		),
 		tabPanel('ARIMA',
+			splitLayout(uiOutput('model_arima_summary')),
 			splitLayout(
 				plotOutput('model_arima_qqplot', height = '300px'),
 				plotOutput('model_arima_acf', height = '300px')
-			),
-			uiOutput('model_arima_summary')
+			)
 		)
 	)),
 	#### FORECAST ####
 	tabPanel('Forecast', icon = icon('chart-line'), tabsetPanel(type = 'pills',
 		tabPanel('ETS',
 			plotOutput('fore_ets'),
-			uiOutput('fore_ets_summary'),
-			tableOutput('fore_ets_table')
+			splitLayout(
+				#uiOutput('fore_ets_summary'),
+				tableOutput('fore_ets_table'),
+				conditionalPanel("input.data_validation_cb == true",
+								 plotOutput('fore_ets_val', height = '300px')
+				)
+			)
 		),
 		tabPanel('ARIMA',
 			plotOutput('fore_arima'),
-			uiOutput('fore_arima_summary')
+			splitLayout(
+				#uiOutput('fore_arima_summary'),
+				tableOutput('fore_arima_table'),
+				conditionalPanel("input.data_validation_cb == true",
+					plotOutput('fore_arima_val', height = '300px')
+				)
+			)
+		)
+	)),
+	#### ABOUT ####
+	tabPanel('About', icon = icon('info-circle'),fluidPage(
+		fluidRow(
+			column(8, offset = 2, wellPanel(
+				p(strong('References:')),
+				p(HTML('Hyndman, R. J., & Athanasopoulos, G. (2018). <i>Forecasting: principles and practice</i>. OTexts.')),
+				p(HTML("Hyndman, R. J., Athanasopoulos, G., Bergmeir, C., Caceres, G., Chhay, L.,
+					   O'Hara-Wild, M., Petropoulos, F., Razbash, S., Wang, E., Yasmeen, F. (2020).
+					   <i>forecast: Forecasting functions for time series and linear models</i>.
+					   R package version 8.12, <a href='http://pkg.robjhyndman.com/forecas'>http://pkg.robjhyndman.com/forecast</a>."))
+			))
 		)
 	)),
 	#### FOOTER ####
 	footer = tags$footer(
 		hr(),
 		flowLayout(id = "cabecario",
-			p(strong("Acknowledgments"), br(),  img(src="FAPESC.png", alt="FAPESC - Fundo de Amparo à Pesquisa e inovação do Estado de Santa Catarina"), # grant 2019TR594
-												img(src="CNPQ.png", alt="Conselho Nacional de Desenvolvimento Científico e Tecnológico")), # grant 421062/2018-5
+			p(strong("Acknowledgments"), br(),  img(src="FAPESC.png", id='fapesc', alt="FAPESC - Fundo de Amparo à Pesquisa e inovação do Estado de Santa Catarina"), # grant 2019TR594
+												img(src="CNPQ.png", id='cnpq', alt="Conselho Nacional de Desenvolvimento Científico e Tecnológico")), # grant 421062/2018-5
 			p(strong("Authors"), br(), "MANFRIN, Danielle", br(),
 										"HENNING, Elisa", br(),
 										"KALBUSCH, Andreza", br(),

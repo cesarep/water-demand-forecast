@@ -2,15 +2,23 @@ body {
 	overflow-y: scroll;
 }
 
+.recalculating::after{
+   content: url(spinner.gif);
+   position: absolute;
+   left: calc(50% - 100px);
+   top: calc(45% - 100px);
+}
+
 table.results{
    table-layout: fixed;
-   width: 30%;
+   width: 50%;
    min-width: 400px;
    margin: 0 auto;
 }
 
 table.results tr td{
    padding: 8px;
+   white-space: normal
 }
 
 table.results tr:not(:last-child){
@@ -31,7 +39,7 @@ table.results tr td:first-child{
    text-align: center;
 }
 #cabecario img{
-   height: 125px;
+   height: 150px;
    margin: 0 10px;
    width: auto;
 }

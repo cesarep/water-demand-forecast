@@ -13,10 +13,17 @@ shinyServer(function(input, output, session) {
 	#### IMPORT TAB ####
 	## Import file
 
-	import = function() data.frame(V1=c(2098064,2131560,2155893,2148904,2139178,2092157,2000241,1986054,2086004,2002469,2207489,2068330,2213972,2400832,2162789,2182637,2074590,2044090,2058373,2038225,2048551,2074917,2216076,2115768,2223332,2200935,2124300,2096102,2137916,2130628,2001614,2108760,2112368,2061940,2116044,2181326,2259042,2280324,2231722,2231215,2178884,2059325,2076815,2097688,2153082,2130012,2224171,2209526,2345104,2314853,2294366,2154050,2194208,2191145,2212914,2215803,2282421,2244625,2243165,2317752,2332073,2333264,2295320))
-
 	import = reactive({
-		req(input$file)
+		#req(input$file)
+
+		if(is.null(input$file))
+			return(data.frame(demand=c(2098064,2131560,2155893,2148904,2139178,2092157,2000241,1986054,2086004,
+								   2002469,2207489,2068330,2213972,2400832,2162789,2182637,2074590,2044090,
+								   2058373,2038225,2048551,2074917,2216076,2115768,2223332,2200935,2124300,
+								   2096102,2137916,2130628,2001614,2108760,2112368,2061940,2116044,2181326,
+								   2259042,2280324,2231722,2231215,2178884,2059325,2076815,2097688,2153082,
+								   2130012,2224171,2209526,2345104,2314853,2294366,2154050,2194208,2191145,
+								   2212914,2215803,2282421,2244625,2243165,2317752,2332073,2333264,2295320)))
 
 		filetype = tolower(tail(strsplit(input$file$name, "\\.")[[1]], 1))
 		file = input$file$datapath
@@ -44,57 +51,63 @@ shinyServer(function(input, output, session) {
 
 	#### OPTIONS TAB ####
 
+
 	time_series = debounce(reactive({
 		req(import())
-
-		print(input$data_column)
 		try({
 			data = import()[[input$data_column]]
 
-			updateTextInput(session, 'data_label', value=input$data_column)
+			if(!is.null(input$file))
+				updateTextInput(session, 'data_label', value=input$data_column)
 
-			freq = as.numeric(ifelse(input$data_frequency != '-1', input$data_frequency, input$data_frequency_custom))
-			start = c(input$data_year, input$data_period)
+			start = input$data_year + (as.numeric(input$data_period)-1)/12
 
-			#if(is.null(data)) return(NULL)
+			time_s = ts(data, start = start, frequency = 12)
 
-			time_s = ts(data, start = start, frequency = freq)
-			return(tsclean(time_s))
+			tsclean(time_s)
+
+			if(input$data_validation_cb){
+				#end = start + (length(data) - input$data_validation-1)/12
+				end = length(data) - input$data_validation
+				train = subset(time_s, start = 1, end = end)
+				valid = subset(time_s, start = end+1)
+				return(list(train, valid))
+			}
+
+			return(list(time_s, FALSE))
 		}, T)
-
-
 	}), 1000)
 
 	data_label = debounce(reactive({input$data_label}), 2500)
 
 	output$option_plot <- renderPlot({
-		req(time_series())
-		autoplot(time_series(), xlab = "Period", ylab=data_label())
-	})
+		req(time_series()[[1]])
+		autoplot(time_series()[[1]], xlab = "Period", ylab=data_label(), main='Data Preview')
+	}, )
 
 	#### PRE ANALYSIS TAB ####
 
 	output$analy_acf <- renderPlot({
-		req(time_series())
-		ggAcf(time_series(), main='ACF')
+		req(time_series()[[1]])
+		ggAcf(time_series()[[1]], main='ACF')
 	})
 
 	output$analy_pacf <- renderPlot({
-		req(time_series())
-		ggPacf(time_series(), main='PACF')
+		req(time_series()[[1]])
+		ggPacf(time_series()[[1]], main='PACF')
 	})
 
 	output$analy_stl <- renderPlot({
-		req(time_series())
-		autoplot(stl(time_series(),s.window='periodic'))
+		req(time_series()[[1]])
+		autoplot(stl(time_series()[[1]],s.window='periodic'))
 	})
 
 	#### MODEL TAB ####
 	## ETS ##
 
 	ets_model <- reactive({
-		req(time_series())
-		return(ets(time_series(), 'MAA'))
+		req(time_series()[[1]])
+		return(ets(time_series()[[1]]))
 	})
 
 	output$model_ets_acf <- renderPlot({
@@ -117,7 +130,7 @@ shinyServer(function(input, output, session) {
 			MAPE  = info[,'MAPE'],
 			RMSE  = info[,'RMSE'],
 			shap = shapiro.test(residuals)$p.value,
-			box = Box.test(residuals, min(length(residuals), 24, 2*input$data_period))$p.value
+			box = Box.test(residuals, min(length(residuals), 24))$p.value
 		)
 
 		return(withTags(
@@ -136,8 +149,8 @@ shinyServer(function(input, output, session) {
 	## ARIMA ##
 
 	arima_model <- reactive({
-		req(time_series())
-		return(auto.arima(time_series()))
+		req(time_series()[[1]])
+		return(auto.arima(time_series()[[1]]))
 	})
 
 	output$model_arima_acf <- renderPlot({
@@ -162,7 +175,7 @@ shinyServer(function(input, output, session) {
 			MAPE  = info[,'MAPE'],
 			RMSE  = info[,'RMSE'],
 			shap = shapiro.test(residuals)$p.value,
-			box = Box.test(residuals, min(length(residuals), 24, 2*input$data_period))$p.value
+			box = Box.test(residuals, min(length(residuals), 24))$p.value
 		)
 
 		return(withTags(
@@ -179,14 +192,29 @@ shinyServer(function(input, output, session) {
 
 
 	#### FORECAST TAB ####
+
+	periods <- reactive({
+		if(input$data_validation_cb)
+			return(input$data_validation)
+		else
+			return(3)
+	})
+
 	## ETS
 
 	ets_forecast <- reactive({
-		return(forecast(ets_model() , h=3))
+		return(forecast(ets_model(), h=periods()))
 	})
 
 	output$fore_ets <- renderPlot({
-		autoplot(ets_forecast(), xlab="Period", ylab=data_label()) + autolayer(fitted(ets_forecast()),color="blue")
+		autoplot(ets_forecast(), xlab="Period", ylab=data_label()) +
+			autolayer(fitted(ets_forecast()), color='blue')
+	})
+
+	output$fore_ets_val <- renderPlot({
+		autoplot(ets_forecast()$mean, ylab=data_label()) +
+			autolayer(ets_forecast()) +
+			autolayer(time_series()[[2]], series='Validation data')
 	})
 
 	output$fore_ets_summary <- renderUI({
@@ -201,26 +229,48 @@ shinyServer(function(input, output, session) {
 					   l80 = ets$lower[,1],
 					   l95 = ets$lower[,2]
 		))
-	})
+		rownames(x) = c('Upper 95%', 'Upper 80%', 'Mean', 'Lower 80%', 'Lower 95%')
+		t = as.numeric(time(ets$mean))
+		y = floor(t)
+		m = floor(12*(t%%1))
+		dates = as.Date(paste(y, m+1, 1, sep = '-'))
+		colnames(x) = tools::toTitleCase(format(dates, '%b %Y'))
+		return(x)
+	}, rownames = T)
 
 	## ARIMA
 
 	arima_forecast <- reactive({
-		return(forecast(arima_model() , h=3))
+		return(forecast(arima_model(), h=periods()))
 	})
 
 	output$fore_arima <- renderPlot({
-		autoplot(arima_forecast(), xlab="Period", ylab=data_label()) + autolayer(fitted(arima_forecast()),color="blue")
+		autoplot(arima_forecast(), xlab="Period", ylab=data_label()) +
+			autolayer(fitted(arima_forecast()), color='blue')
+	})
+
+	output$fore_arima_val <- renderPlot({
+		autoplot(arima_forecast()$mean, ylab=data_label()) +
+			autolayer(arima_forecast()) +
+			autolayer(time_series()[[2]], series='Validation data')
 	})
 
 	output$fore_arima_table <- renderTable({
 		arima = arima_forecast()
-		x=data.frame(l95 = arima$lower[,2],
-					 l80 = arima$lower[,1],
-					   m = arima$mean,
-					 u80 = arima$upper[,1],
-					 u95 = arima$upper[,2]
-		)
-	})
+		x=t(data.frame(u95 = arima$upper[,2],
+					   u80 = arima$upper[,1],
+					   	 m = arima$mean,
+					   l80 = arima$lower[,1],
+					   l95 = arima$lower[,2]
+		))
+		rownames(x) = c('Upper 95%', 'Upper 80%', 'Mean', 'Lower 80%', 'Lower 95%')
+		t = as.numeric(time(arima$mean))
+		y = floor(t)
+		m = floor(12*(t%%1))
+		dates = as.Date(paste(y, m+1, 1, sep = '-'))
+		colnames(x) = tools::toTitleCase(format(dates, '%b %Y'))
+		return(x)
+
+	}, rownames = T)
 
 })
