@@ -4,7 +4,6 @@ library(readxl)
 library(forecast)
 library(ggplot2)
 library(qqplotr)
-library(plotly)
 
 theme_update(plot.title = element_text(hjust = 0.5, size = 16))
 
@@ -237,6 +236,57 @@ shinyServer(function(input, output, session) {
 		colnames(x) = tools::toTitleCase(format(dates, '%b %Y'))
 		return(x)
 	}, rownames = T)
+
+	# output$fore_ets_summary <- renderUI({
+	# 	ets = ets_forecast()
+	# 	x=data.frame(u95 = ets$upper[,2],
+	# 				   u80 = ets$upper[,1],
+	# 				   m = ets$mean,
+	# 				   l80 = ets$lower[,1],
+	# 				   l95 = ets$lower[,2]
+	# 	)
+	# 	#rownames(x) = c('Upper 95%', 'Upper 80%', 'Mean', 'Lower 80%', 'Lower 95%')
+	# 	t = as.numeric(time(ets$mean))
+	# 	y = floor(t)
+	# 	m = floor(12*(t%%1))
+	# 	dates = as.Date(paste(y, m+1, 1, sep = '-'))
+	# 	#colnames(x) = tools::toTitleCase(format(dates, '%b %Y'))
+	#
+	# 	return(withTags(
+	# 		table(id='forecast',
+	# 			thead(tr(
+	# 					th(),
+	# 					th(colspan=length(dates), data_label())
+	# 				),tr(
+	# 					th(),
+	# 					lapply(dates, function(date) th(format(date, '%b %Y')))
+	# 				)
+	# 			),
+	# 			tbody(
+	# 				tr(
+	# 					th('Upper 95%'),
+	# 					lapply(1:nrow(x), function(i) td(x[i, 1]))
+	# 				),
+	# 				tr(
+	# 					th('Upper 80%'),
+	# 					lapply(1:nrow(x), function(i) td(x[i, 2]))
+	# 				),
+	# 				tr(
+	# 					th('Mean'),
+	# 					lapply(1:nrow(x), function(i) td(x[i, 3]))
+	# 				),
+	# 				tr(
+	# 					th('Lower 80%'),
+	# 					lapply(1:nrow(x), function(i) td(x[i, 4]))
+	# 				),
+	# 				tr(
+	# 					th('Lower 95%'),
+	# 					lapply(1:nrow(x), function(i) td(x[i, 5]))
+	# 				)
+	# 			)
+	# 		)
+	# 	))
+	# })
 
 	## ARIMA
 

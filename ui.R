@@ -59,8 +59,7 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 			plotOutput('analy_acf', height = '300px'),
 			plotOutput('analy_pacf', height = '300px')
 		),
-		plotOutput('analy_stl', height = '450px'),
-		"INCLUIR DEMAIS TESTES"
+		plotOutput('analy_stl', height = '450px')
 	)),
 	#### MODEL SELECTION ####
 	tabPanel('Model', icon = icon('calculator'), tabsetPanel(type = 'pills',
@@ -109,7 +108,7 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 		fluidRow(
 			column(8, offset = 2, wellPanel(
 				p(strong('References:')),
-				p(HTML('Hyndman, R. J., & Athanasopoulos, G. (2018). <i>Forecasting: principles and practice</i>. OTexts.')),
+				p(HTML("Hyndman, R. J., & Athanasopoulos, G. (2018). <i>Forecasting: principles and practice</i>. OTexts. <a href='https://otexts.com/fpp2/'>https://otexts.com/fpp2/</a>.")),
 				p(HTML("Hyndman, R. J., Athanasopoulos, G., Bergmeir, C., Caceres, G., Chhay, L.,
 					   O'Hara-Wild, M., Petropoulos, F., Razbash, S., Wang, E., Yasmeen, F. (2020).
 					   <i>forecast: Forecasting functions for time series and linear models</i>.
@@ -123,10 +122,10 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 		flowLayout(id = "cabecario",
 			p(strong("Acknowledgments"), br(),  img(src="FAPESC.png", id='fapesc', alt="FAPESC - Fundo de Amparo à Pesquisa e inovação do Estado de Santa Catarina"), # grant 2019TR594
 												img(src="CNPQ.png", id='cnpq', alt="Conselho Nacional de Desenvolvimento Científico e Tecnológico")), # grant 421062/2018-5
-			p(strong("Authors"), br(), "MANFRIN, Danielle", br(),
+			p(strong("Authors"), br(), "PETERSEN, César E.", br(),
+										"MANFRIN, Danielle", br(),
 										"HENNING, Elisa", br(),
-										"KALBUSCH, Andreza", br(),
-										"PETERSEN, César E.")
+										"KALBUSCH, Andreza")
 		)
 	)
 ))
