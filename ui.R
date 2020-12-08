@@ -1,5 +1,5 @@
-library(shiny)
-library(DT)
+require(shiny)
+require(DT)
 
 month = 1:12
 names(month) = month.abb
@@ -44,7 +44,7 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 			fluidRow(
 				column(6,checkboxInput('data_validation_cb', 'Use last observations as validation data', T)),
 					   column(6,conditionalPanel("input.data_validation_cb == true",
-				numericInput('data_validation', 'Amount of Observations', 3, 1, 6))
+				numericInput('data_validation', 'Amount of Observations', 6, 1, 12))
 			))
 			,
 			textInput('data_label', 'y-axis label', 'Water Demand (m³)')

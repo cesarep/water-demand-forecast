@@ -1,9 +1,10 @@
-library(shiny)
-library(DT)
-library(readxl)
-library(forecast)
-library(ggplot2)
-library(qqplotr)
+require(shiny)
+require(DT)
+require(readxl)
+require(readr)
+require(forecast)
+require(ggplot2)
+require(qqplotr)
 
 theme_update(plot.title = element_text(hjust = 0.5, size = 16))
 
@@ -15,14 +16,13 @@ shinyServer(function(input, output, session) {
 	import = reactive({
 		#req(input$file)
 
-		if(is.null(input$file))
-			return(data.frame(demand=c(2098064,2131560,2155893,2148904,2139178,2092157,2000241,1986054,2086004,
-								   2002469,2207489,2068330,2213972,2400832,2162789,2182637,2074590,2044090,
-								   2058373,2038225,2048551,2074917,2216076,2115768,2223332,2200935,2124300,
-								   2096102,2137916,2130628,2001614,2108760,2112368,2061940,2116044,2181326,
-								   2259042,2280324,2231722,2231215,2178884,2059325,2076815,2097688,2153082,
-								   2130012,2224171,2209526,2345104,2314853,2294366,2154050,2194208,2191145,
-								   2212914,2215803,2282421,2244625,2243165,2317752,2332073,2333264,2295320)))
+		if(is.null(input$file)){
+			exemplo <- read_delim("dados.csv", ";", escape_double = FALSE,
+								  col_types = cols(Data = col_skip(), PublicoCasan = col_skip()),
+								  locale = locale(decimal_mark = ",", grouping_mark = "."), trim_ws = TRUE)
+			updateSelectInput(session, 'data_column', choices = colnames(exemplo), selected = 'Total')
+			return(exemplo)
+		}
 
 		filetype = tolower(tail(strsplit(input$file$name, "\\.")[[1]], 1))
 		file = input$file$datapath
