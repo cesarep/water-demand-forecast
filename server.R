@@ -5,6 +5,7 @@ require(readr)
 require(forecast)
 require(ggplot2)
 require(qqplotr)
+require(nortest)
 
 theme_update(plot.title = element_text(hjust = 0.5, size = 16))
 
@@ -17,11 +18,10 @@ shinyServer(function(input, output, session) {
 		#req(input$file)
 
 		if(is.null(input$file)){
-			exemplo <- read_delim("dados.csv", ";", escape_double = FALSE,
-								  col_types = cols(Data = col_skip(), PublicoCasan = col_skip()),
-								  locale = locale(decimal_mark = ",", grouping_mark = "."), trim_ws = TRUE)
-			updateSelectInput(session, 'data_column', choices = colnames(exemplo), selected = 'Total')
-			return(exemplo)
+			exemple <- read_delim("example_data.csv", ";", escape_double = FALSE, col_types = cols(Data = col_skip()),
+									  locale = locale(decimal_mark = ",", grouping_mark = "."), trim_ws = TRUE, comment = "//")
+			updateSelectInput(session, 'data_column', choices = colnames(exemple), selected = 'Total')
+			return(exemple)
 		}
 
 		filetype = tolower(tail(strsplit(input$file$name, "\\.")[[1]], 1))
@@ -56,8 +56,9 @@ shinyServer(function(input, output, session) {
 		try({
 			data = import()[[input$data_column]]
 
-			if(!is.null(input$file))
+			if(!is.null(input$file)){
 				updateTextInput(session, 'data_label', value=input$data_column)
+			}
 
 			start = input$data_year + (as.numeric(input$data_period)-1)/12
 
@@ -85,6 +86,31 @@ shinyServer(function(input, output, session) {
 	}, )
 
 	#### PRE ANALYSIS TAB ####
+
+	output$analy_summary <- renderUI({
+		req(time_series()[[1]])
+		info = summary(time_series()[[1]])
+		shap = shapiro.test(time_series()[[1]])$p.value
+
+		return(withTags(
+			table(class='results', style="table-layout: auto;",
+				  tr(td('Min.'),         td( sprintf(info[1], fmt='%#.4f') )),
+				  tr(td('1st Quartile'), td( sprintf(info[2], fmt='%#.4f') )),
+				  tr(td('Median'),       td( sprintf(info[3], fmt='%#.4f') )),
+				  tr(td('Mean'),         td( sprintf(info[4], fmt='%#.4f') )),
+				  tr(td('3rd Quartile'), td( sprintf(info[5], fmt='%#.4f') )),
+				  tr(td('Max.'),         td( sprintf(info[6], fmt='%#.4f') )),
+				  tr(td('Shapiro-Wilk Normality Test p-value'), td( sprintf(shap, fmt='%#.4f') ))
+			)
+		))
+	})
+
+	output$analy_qqplot <- renderPlot({
+		req(time_series()[[1]])
+		ggplot(data.frame(res = time_series()[[1]]), aes(sample = res)) + stat_qq_band() +
+			stat_qq_point(shape = 16) + stat_qq_line(size=0) +
+			ggtitle('Normal Q-Q Plot') + xlab('Theorical Quantiles') + ylab('Sample Quantiles')
+	})
 
 	output$analy_acf <- renderPlot({
 		req(time_series()[[1]])
@@ -129,16 +155,18 @@ shinyServer(function(input, output, session) {
 			MAPE  = info[,'MAPE'],
 			RMSE  = info[,'RMSE'],
 			shap = shapiro.test(residuals)$p.value,
-			box = Box.test(residuals, min(length(residuals), 24))$p.value
+			box = Box.test(residuals, min(length(residuals), 24))$p.value,
+			lillie = lillie.test(residuals)$p.value
 		)
 
 		return(withTags(
 			table(class='results',
 				tr(td('Model'), td(res$model)),
 				tr(td('MAE'), td( sprintf(res$MAE, fmt='%#.2f') )),
-				tr(td('MAPE'), td( sprintf(res$MAPE, fmt='%#.3f%%') )),
+				tr(td('MAPE'), td( sprintf(res$MAPE, fmt='%#.2f%%') )),
 				tr(td('RMSE'), td( sprintf(res$RMSE, fmt='%#.2f') )),
 				tr(td('Shapiro-Wilk Normality Test p-value'), td( sprintf(res$shap, fmt='%#.4f') )),
+				tr(td('Lilliefors Normality Test p-value'), td( sprintf(res$lillie, fmt='%#.4f') )),
 				tr(td('Box-Pierce Test p-value'), td( sprintf(res$box, fmt='%#.4f') ))
 			)
 		))
@@ -166,6 +194,7 @@ shinyServer(function(input, output, session) {
 	output$model_arima_summary <- renderUI({
 		info = summary(arima_model())
 		residuals = arima_model()$residuals
+		print(arimaorder(arima_model()))
 		res = list(
 			model = with(as.list(arimaorder(arima_model())), {
 				HTML(paste0('(', p, ',', q, ',', d, ')×(', P, ',', Q, ',', D, ')<sub>', Frequency, '</sub>'))
@@ -174,16 +203,18 @@ shinyServer(function(input, output, session) {
 			MAPE  = info[,'MAPE'],
 			RMSE  = info[,'RMSE'],
 			shap = shapiro.test(residuals)$p.value,
-			box = Box.test(residuals, min(length(residuals), 24))$p.value
+			box = Box.test(residuals, min(length(residuals), 24))$p.value,
+			lillie = lillie.test(residuals)$p.value
 		)
 
 		return(withTags(
 			table(class='results',
 				  tr(td('Model'), td(res$model)),
 				  tr(td('MAE'), td( sprintf(res$MAE, fmt='%#.2f') )),
-				  tr(td('MAPE'), td( sprintf(res$MAPE, fmt='%#.3f%%') )),
+				  tr(td('MAPE'), td( sprintf(res$MAPE, fmt='%#.2f%%') )),
 				  tr(td('RMSE'), td( sprintf(res$RMSE, fmt='%#.2f') )),
 				  tr(td('Shapiro-Wilk Normality Test p-value'), td( sprintf(res$shap, fmt='%#.4f') )),
+				  tr(td('Lilliefors Normality Test p-value'), td( sprintf(res$lillie, fmt='%#.4f') )),
 				  tr(td('Box-Pierce Test p-value'), td( sprintf(res$box, fmt='%#.4f') ))
 			)
 		))
@@ -196,7 +227,7 @@ shinyServer(function(input, output, session) {
 		if(input$data_validation_cb)
 			return(input$data_validation)
 		else
-			return(3)
+			return(6)
 	})
 
 	## ETS
@@ -208,16 +239,6 @@ shinyServer(function(input, output, session) {
 	output$fore_ets <- renderPlot({
 		autoplot(ets_forecast(), xlab="Period", ylab=data_label()) +
 			autolayer(fitted(ets_forecast()), color='blue')
-	})
-
-	output$fore_ets_val <- renderPlot({
-		autoplot(ets_forecast()$mean, ylab=data_label()) +
-			autolayer(ets_forecast()) +
-			autolayer(time_series()[[2]], series='Validation data')
-	})
-
-	output$fore_ets_summary <- renderUI({
-
 	})
 
 	output$fore_ets_table <- renderTable({
@@ -237,56 +258,29 @@ shinyServer(function(input, output, session) {
 		return(x)
 	}, rownames = T)
 
-	# output$fore_ets_summary <- renderUI({
-	# 	ets = ets_forecast()
-	# 	x=data.frame(u95 = ets$upper[,2],
-	# 				   u80 = ets$upper[,1],
-	# 				   m = ets$mean,
-	# 				   l80 = ets$lower[,1],
-	# 				   l95 = ets$lower[,2]
-	# 	)
-	# 	#rownames(x) = c('Upper 95%', 'Upper 80%', 'Mean', 'Lower 80%', 'Lower 95%')
-	# 	t = as.numeric(time(ets$mean))
-	# 	y = floor(t)
-	# 	m = floor(12*(t%%1))
-	# 	dates = as.Date(paste(y, m+1, 1, sep = '-'))
-	# 	#colnames(x) = tools::toTitleCase(format(dates, '%b %Y'))
-	#
-	# 	return(withTags(
-	# 		table(id='forecast',
-	# 			thead(tr(
-	# 					th(),
-	# 					th(colspan=length(dates), data_label())
-	# 				),tr(
-	# 					th(),
-	# 					lapply(dates, function(date) th(format(date, '%b %Y')))
-	# 				)
-	# 			),
-	# 			tbody(
-	# 				tr(
-	# 					th('Upper 95%'),
-	# 					lapply(1:nrow(x), function(i) td(x[i, 1]))
-	# 				),
-	# 				tr(
-	# 					th('Upper 80%'),
-	# 					lapply(1:nrow(x), function(i) td(x[i, 2]))
-	# 				),
-	# 				tr(
-	# 					th('Mean'),
-	# 					lapply(1:nrow(x), function(i) td(x[i, 3]))
-	# 				),
-	# 				tr(
-	# 					th('Lower 80%'),
-	# 					lapply(1:nrow(x), function(i) td(x[i, 4]))
-	# 				),
-	# 				tr(
-	# 					th('Lower 95%'),
-	# 					lapply(1:nrow(x), function(i) td(x[i, 5]))
-	# 				)
-	# 			)
-	# 		)
-	# 	))
-	# })
+	output$fore_ets_val <- renderPlot({
+		autoplot(ets_forecast()$mean, ylab=data_label()) +
+			autolayer(ets_forecast()) +
+			autolayer(time_series()[[2]], series='Validation data')
+	})
+
+	output$fore_ets_val_summary <- renderUI({
+		info = accuracy(ets_forecast(), time_series()[[2]])
+		res = list(
+			MAE   = info[2,'MAE'],
+			MAPE  = info[2,'MAPE'],
+			RMSE  = info[2,'RMSE']
+		)
+
+		return(withTags(
+			table(class='results',
+				  tr(th('Validation data', colspan=2)),
+				  tr(td('MAE'), td( sprintf(res$MAE, fmt='%#.2f') )),
+				  tr(td('MAPE'), td( sprintf(res$MAPE, fmt='%#.2f%%') )),
+				  tr(td('RMSE'), td( sprintf(res$RMSE, fmt='%#.2f') ))
+			)
+		))
+	})
 
 	## ARIMA
 
@@ -297,12 +291,6 @@ shinyServer(function(input, output, session) {
 	output$fore_arima <- renderPlot({
 		autoplot(arima_forecast(), xlab="Period", ylab=data_label()) +
 			autolayer(fitted(arima_forecast()), color='blue')
-	})
-
-	output$fore_arima_val <- renderPlot({
-		autoplot(arima_forecast()$mean, ylab=data_label()) +
-			autolayer(arima_forecast()) +
-			autolayer(time_series()[[2]], series='Validation data')
 	})
 
 	output$fore_arima_table <- renderTable({
@@ -322,5 +310,30 @@ shinyServer(function(input, output, session) {
 		return(x)
 
 	}, rownames = T)
+
+	output$fore_arima_val <- renderPlot({
+		autoplot(arima_forecast()$mean, ylab=data_label()) +
+			autolayer(arima_forecast()) +
+			autolayer(time_series()[[2]], series='Validation data')
+	})
+
+	output$fore_arima_val_summary <- renderUI({
+		info = accuracy(arima_forecast(), time_series()[[2]])
+		res = list(
+			MAE   = info[2,'MAE'],
+			MAPE  = info[2,'MAPE'],
+			RMSE  = info[2,'RMSE']
+		)
+
+		return(withTags(
+			table(class='results',
+				  tr(th('Validation data', colspan=2)),
+				  tr(td('MAE'), td( sprintf(res$MAE, fmt='%#.2f') )),
+				  tr(td('MAPE'), td( sprintf(res$MAPE, fmt='%#.2f%%') )),
+				  tr(td('RMSE'), td( sprintf(res$RMSE, fmt='%#.2f') ))
+			)
+		))
+	})
+
 
 })

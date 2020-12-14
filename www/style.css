@@ -18,7 +18,13 @@ table.results{
 
 table.results tr td{
    padding: 8px;
-   white-space: normal
+   white-space: normal;
+}
+
+table.results tr th{
+   padding: 8px;
+   white-space: normal;
+   text-align: center;
 }
 
 table.results tr:not(:last-child){

@@ -56,6 +56,10 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 	#### PRE ANALYSIS ####
 	tabPanel('Pre-Analysis', icon = icon('chart-bar'), fluidPage(
 		splitLayout(
+			uiOutput('analy_summary'),
+			plotOutput('analy_qqplot', height = '300px')
+		),
+		splitLayout(
 			plotOutput('analy_acf', height = '300px'),
 			plotOutput('analy_pacf', height = '300px')
 		),
@@ -84,22 +88,22 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 	tabPanel('Forecast', icon = icon('chart-line'), tabsetPanel(type = 'pills',
 		tabPanel('ETS',
 			plotOutput('fore_ets'),
-			splitLayout(
-				#uiOutput('fore_ets_summary'),
-				tableOutput('fore_ets_table'),
-				conditionalPanel("input.data_validation_cb == true",
-								 plotOutput('fore_ets_val', height = '300px')
-				)
+			tableOutput('fore_ets_table'),
+			conditionalPanel("input.data_validation_cb == true",
+							 splitLayout(
+							 	uiOutput('fore_ets_val_summary'),
+							 	plotOutput('fore_ets_val', height = '300px')
+							 )
 			)
 		),
 		tabPanel('ARIMA',
 			plotOutput('fore_arima'),
-			splitLayout(
-				#uiOutput('fore_arima_summary'),
-				tableOutput('fore_arima_table'),
-				conditionalPanel("input.data_validation_cb == true",
-					plotOutput('fore_arima_val', height = '300px')
-				)
+			tableOutput('fore_arima_table'),
+			conditionalPanel("input.data_validation_cb == true",
+							 splitLayout(
+							 	uiOutput('fore_arima_val_summary'),
+							 	plotOutput('fore_arima_val', height = '300px')
+							 )
 			)
 		)
 	)),
@@ -108,11 +112,13 @@ shinyUI(navbarPage("Water Demand Forecast", fluid = FALSE, inverse = TRUE,  head
 		fluidRow(
 			column(8, offset = 2, wellPanel(
 				p(strong('References:')),
-				p(HTML("Hyndman, R. J., & Athanasopoulos, G. (2018). <i>Forecasting: principles and practice</i>. OTexts. <a href='https://otexts.com/fpp2/'>https://otexts.com/fpp2/</a>.")),
+				p(HTML("Hyndman, R. J., & Athanasopoulos, G. (2020). <i>Forecasting: principles and practice</i>. OTexts. <a href='https://otexts.com/fpp2/'>https://otexts.com/fpp3/</a>.")),
 				p(HTML("Hyndman, R. J., Athanasopoulos, G., Bergmeir, C., Caceres, G., Chhay, L.,
 					   O'Hara-Wild, M., Petropoulos, F., Razbash, S., Wang, E., Yasmeen, F. (2020).
 					   <i>forecast: Forecasting functions for time series and linear models</i>.
-					   R package version 8.12, <a href='http://pkg.robjhyndman.com/forecas'>http://pkg.robjhyndman.com/forecast</a>."))
+					   R package version 8.12, <a href='http://pkg.robjhyndman.com/forecas'>http://pkg.robjhyndman.com/forecast</a>.")),
+				p(HTML("The source-code for this application is available at:
+					   <a href='https://github.com/cesarep/water-demand-forecast'>GitHub.</a>"))
 			))
 		)
 	)),
